@@ -19,6 +19,8 @@ PATH=/public/home/wangpf/tools/fastp/:$PATH
 PATH=/public/home/wangpf/tools/samtools-1.9:$PATH
 PATH=/public/home/wangpf/tools/FastQC:$PATH
 PATH=/public/home/wangpf/tools/R-4.0.2/bin:$PATH
+PATH=/public/home/wangpf/tools/ucsc_utilities:$PATH
+PATH=/public/home/wangpf/tools/annovar:$PATH
 export PATH
 
 # 建立基因组索引
@@ -26,13 +28,16 @@ cd ${work_dir}/refseq
 java -jar ${picard} CreateSequenceDictionary R=${genome} O=${genome/fa/dict}
 samtools faidx ${genome}
 gffread ${gff} -T -o ${gtf}
+# STAR索引
 STAR --runThreadN ${thread} \
 	--runMode genomeGenerate \
 	--genomeDir ./ \
 	--genomeFastaFiles ${genome} \
 	--sjdbGTFfile ${gtf} \
 	--sjdbOverhang ${sjdbOverhang}
-
+# annovar索引
+gtfToGenePred -genePredExt ${gtf} genome_refGene.txt
+retrieve_seq_from_fasta.pl --format refGene --seqfile ${genome} genome_refGene.txt --out genome_refGeneMrna.fa
 
 cd ${work_dir}
 IFS_OLD=$IFS
@@ -169,12 +174,24 @@ java -jar ${gatk} \
 java -jar ${gatk} \
      -R ${genome} -T VariantsToTable \
      -F CHROM -F POS -F REF -F ALT -GF GT -GF AD -GF DP -GF GQ -GF PL \
-     -V ${filename}.filter.SNPs.vcf -o ../03.Analysis/${filename}.filter.SNPs.table
+     -V ${filename}.filter.SNPs.vcf -o ../04.Analysis/${filename}.filter.SNPs.table
 
-grep -v "##" ${filename}.filter.SNPs.vcf | sed 's/^#CHROM/CHROM/' > ../03.Analysis/${filename}.filter.SNPs.txt
+grep -v "##" ${filename}.filter.SNPs.vcf | sed 's/^#CHROM/CHROM/' > ../04.Analysis/${filename}.filter.SNPs.txt
 
 # vcf QC
 java -jar ${DISCVRSeq} VariantQC -O ${filename}.flt.report.html -R ${genome} -V ${filename}.flt.vcf
+
+# annotation
+cd ${work_dir}/03.Annotation
+convert2annovar.pl --format vcf4old ../02.SNP_indel/${filename}.filter.SNPs.vcf --outfile ./${filename}.filter.SNPs.annovar.input
+convert2annovar.pl --format vcf4old ../02.SNP_indel/${filename}.filter.INDELs.vcf --outfile ./${filename}.filter.INDELs.annovar.input
+annotate_variation.pl --geneanno --neargene 2000 -buildver genome --dbtype refGene --outfile ./${filename}.filter.SNPs.anno --exonsort ./${filename}.filter.SNPs.annovar.input ../refseq
+annotate_variation.pl --geneanno --neargene 2000 -buildver genome --dbtype refGene --outfile ./${filename}.filter.INDELs.anno --exonsort ./${filename}.filter.INDELs.annovar.input ../refseq
+
+Rscript AnnoStat.R --snpvar ${filename}.filter.SNPs.anno.variant_function \
+	--indelvar ${filename}.filter.INDELs.anno.variant_function \
+	--snpex ${filename}.filter.SNPs.anno.exonic_variant_function \
+	--indelex ${filename}.filter.INDELs.anno.exonic_variant_function
 
 ## 
 cd ${work_dir}/00.data/00.raw_data
