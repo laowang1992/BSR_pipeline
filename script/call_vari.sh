@@ -9,6 +9,7 @@ gtf=${work_dir}/refseq/zs11.v0.gtf
 sjdbOverhang=149		# sjdbOverhang = readLenght - 1
 picard=/public/home/wangpf/tools/picard-tools-2.23.3/picard.jar
 gatk=/public/home/wangpf/tools/GenomeAnalysisTK-3.8-0-ge9d806836/GenomeAnalysisTK.jar
+DISCVRSeq=/public/home/wangpf/tools/DISCVRSeq/DISCVRSeq-1.18.jar
 thread=28
 jobn=4		# jobs number of picard or gatk
 filename=LZ_BSR
@@ -148,12 +149,10 @@ java -jar ${gatk} \
 	-T VariantFiltration \
 	-R ${genome} \
 	-V ${filename}.gatk.vcf  \
-	-window 35 \
-	-cluster 3 \
+	-filterName FilterQual -filter "QUAL<30.0" \
 	-filterName FilterFS -filter "FS > 30.0" \
 	-filterName FilterQD -filter "QD < 2.0" \
 	-o ./${filename}.flt.vcf
-
 
 grep -vP "\tFilter" ${filename}.flt.vcf > ${filename}.filter.vcf
 
@@ -167,8 +166,15 @@ java -jar ${gatk} \
      -selectType INDEL \
      -V ${filename}.filter.vcf -o ${filename}.filter.INDELs.vcf
 
+java -jar ${gatk} \
+     -R ${genome} -T VariantsToTable \
+     -F CHROM -F POS -F REF -F ALT -GF GT -GF AD -GF DP -GF GQ -GF PL \
+     -V ${filename}.filter.SNPs.vcf -o ../03.Analysis/${filename}.filter.SNPs.table
 
 grep -v "##" ${filename}.filter.SNPs.vcf | sed 's/^#CHROM/CHROM/' > ../03.Analysis/${filename}.filter.SNPs.txt
+
+# vcf QC
+java -jar ${DISCVRSeq} VariantQC -O ${filename}.flt.report.html -R ${genome} -V ${filename}.flt.vcf
 
 ## 
 cd ${work_dir}/00.data/00.raw_data

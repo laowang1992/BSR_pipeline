@@ -199,7 +199,7 @@ write_csv(outtb, paste(outPrefix, "QTLseqrdeltaSNPindex.csv", sep = "."))
 #plotQTLStats(SNPset = df, var = "Gprime", plotThreshold = TRUE, q = 0.01)
 #plotQTLStats(SNPset = df, var = "deltaSNP", plotIntervals = TRUE) + theme_half_open()
 # add chrom color infomation
-
+df$LABEL <- factor(df$LABEL, levels = chromColor$LABEL)
 p <- df %>% filter(nSNPs > minN) %>%
   ggplot() +
   geom_line(aes(x = POS, y = CI_95), color = "gray") +

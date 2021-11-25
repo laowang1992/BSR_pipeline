@@ -179,6 +179,8 @@ write_csv(x = SNPnumber, path = paste(outPrefix, "SNP_number_per_chr.csv", sep =
 options(scipen = 200)
 colourCount = dim(chromColor)[[1]]
 getPalette = colorRampPalette(brewer.pal(8, "Set1"))
+#df$LABEL <- factor(df$LABEL, levels = chromColor$LABEL)
+chromColor$LABEL <- factor(chromColor$LABEL, levels = chromColor$LABEL)
 Phist <- chromColor %>% left_join(hh, by = "CHROM") %>% ggplot(aes(x = POS)) +
   geom_histogram(aes(fill = LABEL), color = NA, binwidth = 1000000) +
   labs(x = NULL, y = "SNP Count / 1Mb") +
@@ -259,7 +261,7 @@ d <- chromColor %>% left_join(d, by = "CHROM")
 #               panel.grid.minor.y = element_line(color = "grey",linetype = 2),
 #               panel.grid.minor.x = element_blank(),
 #               legend.position = "none")
-
+d$LABEL <- factor(d$LABEL, levels = chromColor$LABEL)
 Pdelta <- ggplot(filter(d, SNP_N > minN), aes(x = win_mid, y = delta_SNP_INDEX)) +
   geom_point(aes(color = COLOR), size = 0.7) +
   ylim(-1, 1) +
