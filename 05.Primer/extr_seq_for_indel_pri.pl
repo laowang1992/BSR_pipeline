@@ -2,40 +2,71 @@
 #提出indel位点前后各250bp序列
 use strict;
 use warnings;
+use Bio::SeqIO;
+use Getopt::Long qw(:config no_ignore_case bundling);
 
-# 输入基因组文件
-open IN1,"$ARGV[0]";
+my $usage = <<__EOUSAGE__;
+
+############################################################
+#
+# Usage:  $0 --input indels.filter.txt --genome genome.fa --output indelWithSEQ.filter.txt
+#
+# Required:
+#
+#	--input <string>			input filename.
+#
+#	--genome <string>			genome fasta file.
+#
+#	--output <string>			output filename.
+#
+############################################################
+
+
+__EOUSAGE__
+
+    ;
+
+my $help_flag;
+my $input;
+my $genome;
+my $output;
+
+&GetOptions('help|h' => \$help_flag,
+            'input|i=s' => \$input,
+            'genome|g=s' => \$genome,
+            'output|o=s' => \$output,
+            );
+
+unless ($input && $genome && $output) {
+	die $usage;
+}
+
+unless ($genome =~ /fa(sta)?$/) {
+	die "Error, genome file suffix must be .fa or .fasta, dont recognize --genome $genome ";
+}
+
+# 读取genome文件
+my %genome;
+my $fa = Bio::SeqIO->new (-file =>$genome, -f =>'fasta');
+while (my $seq_obj = $fa->next_seq) {
+	my $id = $seq_obj->id;
+	my $seq = $seq_obj->seq;
+	$genome{$id} = ${seq};
+	print "$id has been read ...\n";
+}
+
 
 # 输入INDEL信息
-open IN2,"$ARGV[1]";
+open IN,"$input";
 
 # 定义输出文件
-open OUT,">$ARGV[2]";
+open OUT,">$output";
 
 my $m=0;
 my $n=0;
 my $i=1;
-my @chr;
-my @seq;
-while(<IN1>){
-	chomp;
-	if($i%2){
-		$_=~s/^\>//;
-		$chr[$m]=$_;
-		$m=$m+1;
-	}else{
-		$seq[$n]=$_;
-		$n=$n+1;
-	}
-	$i=$i+1;
-}
-my %genome;
-my $b=0;
-foreach(@chr){
-	$genome{$_}=$seq[$b];
-	$b=$b+1;
-}
-while(<IN2>){
+
+while(<IN>){
 	chomp;
 	print OUT "SEQ_500bp\t$_\n" if /^CHROM\tPOS\tID\tREF\tALT/;
 	next if /^CHROM\tPOS\tID\tREF\tALT/;
@@ -45,6 +76,6 @@ while(<IN2>){
 	next if $se=~/N+/;
 	print OUT "$se\t$_\n";
 }
-close IN1;
-close IN2;
+
+close IN;
 close OUT;

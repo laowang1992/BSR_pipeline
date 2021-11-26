@@ -1,5 +1,43 @@
-open IN,"$ARGV[0]";
-open OUT,">$ARGV[1]";
+#! /usr/bin/perl
+
+use strict;
+use warnings;
+use Getopt::Long qw(:config no_ignore_case bundling);
+
+my $usage = <<__EOUSAGE__;
+
+############################################################
+#
+# Usage:  $0 --input p3out --output primer.txt
+#
+# Required:
+#
+#	--input <string>			input p3in filename.
+#
+#	--output <string>			output table filename.
+#
+############################################################
+
+
+__EOUSAGE__
+
+    ;
+
+my $help_flag;
+my $input;
+my $output;
+
+&GetOptions('help|h' => \$help_flag,
+            'input|i=s' => \$input,
+            'output|o=s' => \$output,
+            );
+
+unless ($input && $output) {
+	die $usage;
+}
+
+open IN,"$input";
+open OUT,">$output";
 
 print OUT "ID	Left_primer_1	Right_primer_1	Left_TM_1	Right_TM_1	Left_GC_1	Right_GC_1	Length_1	Left_primer_2	Right_primer_2	Left_TM_2	Right_TM_2	Left_GC_2	Right_GC_2	Length_2	Left_primer_3	Right_primer_3	Left_TM_3	Right_TM_3	Left_GC_3	Right_GC_3	Length_3";
 while(<IN>){
