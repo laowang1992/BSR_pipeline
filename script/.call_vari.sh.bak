@@ -2,7 +2,7 @@
 
 work_dir=/public/home/wangpf/workspace/LiuZ/202105_bsr
 
-sampleInfo=${work_dir}/00.data/samples.txt
+sample=${work_dir}/00.data/samples.txt
 genome=${work_dir}/refseq/zs11.genome.fa
 gff=${work_dir}/refseq/zs11.v0.gff3
 gtf=${work_dir}/refseq/zs11.v0.gtf
@@ -62,47 +62,53 @@ gtfToGenePred -genePredExt ${gtf} genome_refGene.txt
 retrieve_seq_from_fasta.pl --format refGene --seqfile ${genome} genome_refGene.txt --out genome_refGeneMrna.fa
 
 cd ${work_dir}
+IFS_OLD=$IFS
+IFS=$'\n'
 
-cat ${sampleInfo} | while read sample group fq1 fq2
+for i in $(cat ${sample})
 do
+	IFS=$'\t'
+	i=($i)
+	IFS=$IFS_OLD
+	
 	# 过滤，质控
 	cd ${work_dir}/00.data/01.clean_data
-	fastp -i ${fq1} -o ./${sample}_1.clean.fastq.gz \
-		-I ${fq2} -O ./${sample}_2.clean.fastq.gz \
-		--json=./${sample}.json --html=${sample}.html --report_title="${sample} fastp report" \
+	fastp -i ${i[2]} -o ./${i[0]}_1.clean.fastq.gz \
+		-I ${i[3]} -O ./${i[0]}_2.clean.fastq.gz \
+		--json=./${i[0]}.json --html=${i[0]}.html --report_title="${i[0]} fastp report" \
 		--thread=${thread} --length_required 50
 	
 	cd ${work_dir}/01.Mapping
 	
 	# 第一次比对
-	mkdir -p ${sample}
+	mkdir -p ${i[0]}
 	STAR --runMode alignReads \
 		--runThreadN ${thread} --genomeDir ${work_dir}/refseq/ \
-		--readFilesIn ${work_dir}/00.data/01.clean_data/${sample}_1.clean.fastq.gz ${work_dir}/00.data/01.clean_data/${sample}_2.clean.fastq.gz \
+		--readFilesIn ${work_dir}/00.data/01.clean_data/${i[0]}_1.clean.fastq.gz ${work_dir}/00.data/01.clean_data/${i[0]}_2.clean.fastq.gz \
 		--readFilesCommand zcat \
-		--outFileNamePrefix ./${sample}/${sample}_1 \
+		--outFileNamePrefix ./${i[0]}/${i[0]}_1 \
 		--outSAMtype BAM Unsorted
 	
 	# 根据第一次比对结果，重新建立索引
 	STAR --runThreadN ${thread} --runMode genomeGenerate \
-		--genomeDir ./${sample}/ \
+		--genomeDir ./${i[0]}/ \
 		--genomeFastaFiles ${genome} \
-		--sjdbFileChrStartEnd ./${sample}/${sample}_1SJ.out.tab \
+		--sjdbFileChrStartEnd ./${i[0]}/${i[0]}_1SJ.out.tab \
 		--sjdbGTFfile ${gtf} \
 		--sjdbOverhang ${sjdbOverhang}
 	
 	# 第二次比对
 	STAR --runMode alignReads \
-		--runThreadN ${thread} --genomeDir ./${sample} \
-		--readFilesIn ${work_dir}/00.data/01.clean_data/${sample}_1.clean.fastq.gz ${work_dir}/00.data/01.clean_data/${sample}_2.clean.fastq.gz \
+		--runThreadN ${thread} --genomeDir ./${i[0]} \
+		--readFilesIn ${work_dir}/00.data/01.clean_data/${i[0]}_1.clean.fastq.gz ${work_dir}/00.data/01.clean_data/${i[0]}_2.clean.fastq.gz \
 		--readFilesCommand zcat \
-		--outFileNamePrefix ./${sample}/${sample}_2 \
+		--outFileNamePrefix ./${i[0]}/${i[0]}_2 \
 		--outSAMtype BAM Unsorted
 done
 
 # 添加标签、排序
 cd ${work_dir}/01.Mapping
-awk '{print $1}' ${sampleInfo} | \
+awk '{print $1}' ${sample} | \
 parallel -j ${jobn} -I% --max-args 1 \
 java -jar ${picard} AddOrReplaceReadGroups \
 	I=./%/"%"_2Aligned.out.bam \
@@ -115,7 +121,7 @@ java -jar ${picard} AddOrReplaceReadGroups \
 	RGSM=%
 
 # 去重复
-awk '{print $1}' ${sampleInfo} | \
+awk '{print $1}' ${sample} | \
 parallel -j ${jobn} -I% --max-args 1 \
 java -jar ${picard} MarkDuplicates \
 	I=./%/"%"_rg_added_sorted.bam \
@@ -125,7 +131,7 @@ java -jar ${picard} MarkDuplicates \
 	M=./%/"%"_dedup.metrics
 
 # MAPQ同步和reads剪切
-awk '{print $1}' ${sampleInfo} | \
+awk '{print $1}' ${sample} | \
 parallel -j ${jobn} -I% --max-args 1 \
 java -jar ${gatk} -T SplitNCigarReads \
 	-R ${genome} \
@@ -137,7 +143,7 @@ java -jar ${gatk} -T SplitNCigarReads \
 	-U ALLOW_N_CIGAR_READS
 
 # 统计比对情况
-awk '{print $1}' ${sampleInfo} | \
+awk '{print $1}' ${sample} | \
 parallel -j ${jobn} -I% --max-args 1 \
 samtools flagstat %/%_2Aligned.out.bam ">" %/%_2Aligned.flagstat
 
@@ -145,7 +151,7 @@ samtools flagstat %/%_2Aligned.out.bam ">" %/%_2Aligned.flagstat
 # 变异检测
 cd ${work_dir}/02.SNP_indel
 
-awk '{print $1}' ${sampleInfo} | \
+awk '{print $1}' ${sample} | \
 parallel -j ${jobn} -I% --max-args 1 \
 	java -jar ${gatk} -T HaplotypeCaller \
 		-R ${genome} \
@@ -225,7 +231,7 @@ Rscript dataStat.R
 ## 比对统计
 cd ${work_dir}/01.Mapping
 echo -ne "Sample,Total reads,Unique reads,Unique rate(%),Multi-mapping reads,Multi-mapping rate(%),Unmapped reads,Unmapped rate(%),Chimeric reads,Chimeric rate(%)\n" > align_stat.csv
-for i in $(cut -f1 ${sampleInfo})
+for i in $(cut -f1 ${sample})
 do
 cd $i
 echo -ne "$i," >> ../align_stat.csv
@@ -236,7 +242,7 @@ done
 ## 转录组分析
 # 定量
 cd ${work_dir}/06.Quantification
-for i in $(cut -f2 ${sampleInfo})
+for i in $(cut -f2 ${sample})
 do
 Rscript run-featurecounts.R \
 	-b ../01.Mapping/${i}/${i}_rg_added_sorted.bam \
@@ -249,7 +255,7 @@ done
 
 # 合并
 cd ${work_dir}/07.Merge_result
-cut -f2 ${sampleInfo} | sed 's/^/..\/06.Quantification\//' | sed 's/$/.count/' > genes.quant_files.txt
+cut -f2 ${sample} | sed 's/^/..\/06.Quantification\//' | sed 's/$/.count/' > genes.quant_files.txt
 perl script/abundance_estimates_to_matrix.pl --est_method featureCounts --quant_files genes.quant_files.txt --out_prefix genes
 
 # 差异表达。多为无重复，因此用edgeR
