@@ -99,7 +99,7 @@ if (FALSE) {
 }
 
 ## 读取数据
-chr <- read_tsv("./chromColor.txt")
+chr <- read_tsv("./chrom.txt")
 len <- read_tsv(file = "./ref.len", col_names = c("CHROM", "Len"))
 
 df <- read_tsv(file = filename) %>%
@@ -187,14 +187,14 @@ write_csv(x = df, file = paste(outPrefix, "SlidingWindow.csv", sep = "."))
 pdf(file = paste(outPrefix, "ED.pdf", sep = "."), width = width, height = height)
 CMplot(filter(df, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED = ED), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED", ylim = c(0, 1.5), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
 png(filename = paste(outPrefix, "ED.png", sep = "."), width = width, height = height, units = "in", res = 500)
 CMplot(filter(df, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED = ED), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED", ylim = c(0, 1.5), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
@@ -203,14 +203,14 @@ dev.off()
 pdf(file = paste(outPrefix, "ED4.pdf", sep = "."), width = width, height = height)
 CMplot(filter(df, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED4 = ED4), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED^4", ylim = c(0, 4), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED^4", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
 png(filename = paste(outPrefix, "ED4.png", sep = "."), width = width, height = height, units = "in", res = 500)
 CMplot(filter(df, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED4 = ED4), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED^4", ylim = c(0, 4), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED^4", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()

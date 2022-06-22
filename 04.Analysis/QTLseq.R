@@ -127,7 +127,7 @@ if (FALSE) {
 }
 
 ## 读取数据
-chr <- read_tsv("./chromColor.txt")
+chr <- read_tsv("./chrom.txt")
 len <- read_tsv(file = "./ref.len", col_names = c("CHROM", "Len"))
 
 df <- read_tsv(file = filename) %>%
@@ -168,10 +168,10 @@ dd2 <- dd1 %>% separate(highBulk.AD, c("highBulk.AD_0", "highBulk.AD_1"), sep = 
   separate(lowBulk.PL, c("lowBulk.PL_00", "lowBulk.PL_01", "lowBulk.PL_11"), sep = ",", convert = TRUE)
 
 ## 
-dd3 <- dd2 %>% filter(!((highBulk.AD_0 / (highBulk.AD_0 + highBulk.AD_1) < 0.3) & 
+dd3 <- dd2 %>% filter(!(((highBulk.AD_0 / (highBulk.AD_0 + highBulk.AD_1) < 0.3) & 
                           (lowBulk.AD_0 / (lowBulk.AD_0 + lowBulk.AD_1) < 0.3)) | 
                         ((highBulk.AD_0 / (highBulk.AD_0 + highBulk.AD_1) > 0.7) & 
-                           (lowBulk.AD_0 / (lowBulk.AD_0 + lowBulk.AD_1) > 0.7)))
+                           (lowBulk.AD_0 / (lowBulk.AD_0 + lowBulk.AD_1) > 0.7))))
 ## 
 dp <- dd3 %>% dplyr::select(HP = highParent.DP, LP = lowParent.DP, HB = highBulk.DP, LB = lowBulk.DP) %>%
   gather(key = "sample", value = "depth")
@@ -333,14 +333,14 @@ dev.off()
 pdf(file = paste(outPrefix, "ED.pdf", sep = "."), width = width, height = height)
 CMplot(filter(slidwin, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED", ylim = c(0, 1.5), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
 png(filename = paste(outPrefix, "ED.png", sep = "."), width = width, height = height, units = "in", res = 500)
 CMplot(filter(slidwin, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED", ylim = c(0, 1.5), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
@@ -348,14 +348,14 @@ dev.off()
 pdf(file = paste(outPrefix, "ED4.pdf", sep = "."), width = width, height = height)
 CMplot(filter(slidwin, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED4), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED^4", ylim = c(0, 4), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED^4", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
 png(filename = paste(outPrefix, "ED4.png", sep = "."), width = width, height = height, units = "in", res = 500)
 CMplot(filter(slidwin, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED4), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED^4", ylim = c(0, 4), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED^4", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
@@ -385,10 +385,13 @@ df <- runQTLseqAnalysis(
 
 # 输出QTLseqr结算结果
 outtb <- df %>% select(CHROM, POS, REF, ALT, LowBulk.LPgeno.AD = AD_REF.LOW, LowBulk.HPgeno.AD = AD_ALT.LOW, 
-              SNPindex.LOW, HighBulk.LPgeno.AD = AD_REF.HIGH, HighBulk.HPgeno.AD = AD_ALT.HIGH, SNPindex.HIGH, 
-              deltaSNP, nSNPs, tricubeDeltaSNP, CI_95, CI_99)
+                       SNPindex.LOW, HighBulk.LPgeno.AD = AD_REF.HIGH, HighBulk.HPgeno.AD = AD_ALT.HIGH, SNPindex.HIGH, 
+                       deltaSNP, nSNPs, tricubeDeltaSNP, CI_95, CI_99)
 write_tsv(outtb, paste(outPrefix, "QTLseqrdeltaSNPindex.txt", sep = "."))
 write_csv(outtb, paste(outPrefix, "QTLseqrdeltaSNPindex.csv", sep = "."))
+
+# 
+df <- df %>% filter(nSNPs > minN)
 
 #plotQTLStats(SNPset = df, var = "Gprime", plotThreshold = TRUE, q = 0.01)
 #plotQTLStats(SNPset = df, var = "deltaSNP", plotIntervals = TRUE) + theme_half_open()
@@ -427,39 +430,6 @@ plotIndex(df = outtb, chr = chr, len = len, CI = "CI_99", nSNPs = "nSNPs", n = m
 dev.off()
 
 
-#p <- df %>% filter(nSNPs > minN) %>%
-#  ggplot() +
-#  geom_line(aes(x = POS, y = CI_95), color = "gray") +
-#  geom_line(aes(x = POS, y = -CI_95), color = "gray") +
-#  geom_line(aes(x = POS, y = tricubeDeltaSNP, color = COLOR), size = 1) +
-#  ylim(-1, 1) +
-#  labs(x = NULL, y = "delta SNP index") +
-#  scale_x_continuous(breaks = NULL, expand = c(0, 0)) +
-#  scale_color_aaas() +
-#  theme_half_open() +
-#  theme(legend.position = "none") +
-#  facet_grid(. ~ LABEL, scales = "free_x", space = "free_x")
-#ggsave(filename = paste(outPrefix, "deltaSNPindex.95CI.pdf", sep = "."), width = width, height = height)
-#ggsave(filename = paste(outPrefix, "deltaSNPindex.95CI.png", sep = "."), width = width, height = height, dpi = 500)
-#
-#p <- df %>% filter(nSNPs > minN) %>%
-#  ggplot() +
-#  geom_line(aes(x = POS, y = CI_99), color = "gray") +
-#  geom_line(aes(x = POS, y = -CI_99), color = "gray") +
-#  geom_line(aes(x = POS, y = tricubeDeltaSNP, color = COLOR), size = 1) +
-#  ylim(-1, 1) +
-#  labs(x = NULL, y = "delta SNP index") +
-#  scale_x_continuous(breaks = NULL, expand = c(0, 0)) +
-#  scale_color_aaas() +
-#  theme_half_open() +
-#  theme(legend.position = "none") +
-#  facet_grid(. ~ LABEL, scales = "free_x", space = "free_x")
-#ggsave(filename = paste(outPrefix, "deltaSNPindex.99CI.pdf", sep = "."), width = width, height = height)
-#ggsave(filename = paste(outPrefix, "deltaSNPindex.99CI.png", sep = "."), width = width, height = height, dpi = 500)
-
-#export summary CSV
-#getQTLTable(SNPset = df, alpha = 0.01, export = TRUE, fileName = "Gprime_QTL.csv",method="Gprime")
-#x <- chr %>% left_join(df, by = "CHROM") %>% select(-CHROM, -COLOR) %>% rename(CHROM = LABEL)
 getQTLTable(SNPset = df, interval =95, export = TRUE, fileName = paste(outPrefix, "95CI.csv", sep = "."), method="QTLseq")
 getQTLTable(SNPset = df, interval =99, export = TRUE, fileName = paste(outPrefix, "99CI.csv", sep = "."), method="QTLseq")
 

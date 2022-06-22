@@ -11,7 +11,7 @@ p <- add_argument(p, "--list", short = "-l", help = "list table header", flag = 
 p <- add_argument(p, "--input", help = "TABEL file from GATK", type = "character")
 p <- add_argument(p, "--out", help = "A prefix for output file", type = "character")
 p <- add_argument(p, "--highP", help = "The parent name with high phenotype", type = "character")
-#p <- add_argument(p, "--lowP", help = "The parent name with low phenotype", type = "character")
+p <- add_argument(p, "--lowP", help = "The parent name with low phenotype", type = "character")
 p <- add_argument(p, "--highB", help = "The bulk name with high phenotype", type = "character")
 p <- add_argument(p, "--lowB", help = "The bulk name with low phenotype", type = "character")
 p <- add_argument(p, "--popType", help = "Population type, 'F2' or 'RIL'", type = "character")
@@ -43,7 +43,7 @@ p <- add_argument(p, "--height", help = "Delta SNP index plot height", type = "n
 argv <- parse_args(p)
 
 if (argv$list) {
-  df <- read.table(argv$variation, nrows = 1, header = T)
+  df <- read.table(argv$input, nrows = 1, header = T)
   col_name <- colnames(df)
   print(col_name)
   quit(save = "no")
@@ -65,7 +65,7 @@ minQ <- argv$minQ
 bulkSizeH <- argv$bulkSizeH
 bulkSizeL <- argv$bulkSizeL
 highP <- argv$highP
-#lowP <- argv$lowP
+lowP <- argv$lowP
 highB <- argv$highB
 lowB <- argv$lowB
 popType <- argv$popType
@@ -93,6 +93,7 @@ if (FALSE) {
   bulkSizeL <- 30
   ## sample name
   highP <- "PP"
+  lowP <- "PG"
   highB <- "F2P"
   lowB <- "F2G"
   ##
@@ -121,7 +122,7 @@ if (FALSE) {
 
 
 ## 读取数据
-chr <- read_tsv("./chromColor.txt")
+chr <- read_tsv("./chrom.txt")
 len <- read_tsv(file = "./ref.len", col_names = c("CHROM", "Len"))
 
 df <- read_tsv(file = filename) %>%
@@ -155,10 +156,10 @@ dd2 <- dd1 %>% separate(highBulk.AD, c("highBulk.AD_0", "highBulk.AD_1"), sep = 
   separate(highBulk.PL, c("highBulk.PL_00", "highBulk.PL_01", "highBulk.PL_11"), sep = ",", convert = TRUE) %>%
   separate(lowBulk.PL, c("lowBulk.PL_00", "lowBulk.PL_01", "lowBulk.PL_11"), sep = ",", convert = TRUE)
 
-dd3 <- dd2 %>% filter(!((highBulk.AD_0 / (highBulk.AD_0 + highBulk.AD_1) < 0.3) & 
+dd3 <- dd2 %>% filter(!(((highBulk.AD_0 / (highBulk.AD_0 + highBulk.AD_1) < 0.3) & 
                           (lowBulk.AD_0 / (lowBulk.AD_0 + lowBulk.AD_1) < 0.3)) | 
                         ((highBulk.AD_0 / (highBulk.AD_0 + highBulk.AD_1) > 0.7) & 
-                           (lowBulk.AD_0 / (lowBulk.AD_0 + lowBulk.AD_1) > 0.7)))
+                           (lowBulk.AD_0 / (lowBulk.AD_0 + lowBulk.AD_1) > 0.7))))
 ## 
 dp <- dd3 %>% dplyr::select(HP = highParent.DP, HB = highBulk.DP, LB = lowBulk.DP) %>%
   gather(key = "sample", value = "depth")
@@ -317,14 +318,14 @@ dev.off()
 pdf(file = paste(outPrefix, "ED.pdf", sep = "."), width = width, height = height)
 CMplot(filter(slidwin, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED", ylim = c(0, 1.5), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
 png(filename = paste(outPrefix, "ED.png", sep = "."), width = width, height = height, units = "in", res = 500)
 CMplot(filter(slidwin, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED", ylim = c(0, 1.5), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
@@ -332,14 +333,14 @@ dev.off()
 pdf(file = paste(outPrefix, "ED4.pdf", sep = "."), width = width, height = height)
 CMplot(filter(slidwin, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED4), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED^4", ylim = c(0, 4), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED^4", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()
 png(filename = paste(outPrefix, "ED4.png", sep = "."), width = width, height = height, units = "in", res = 500)
 CMplot(filter(slidwin, SNPn > minN) %>% select(SNP = CHROM, Chromosome = CHROM, Postion = win_mid, ED4), 
        type = "p", plot.type = c("m"), band = 0.5, LOG10 = FALSE, chr.labels = chr$LABEL,
-       ylab = "ED^4", ylim = c(0, 4), cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
+       ylab = "ED^4", cex = 0.5, signal.cex = 0.8, chr.labels.angle = 45,
        chr.den.col = NULL, ylab.pos = 2.7, amplify = FALSE,
        file.output = FALSE)
 dev.off()

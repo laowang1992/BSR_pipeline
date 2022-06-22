@@ -118,7 +118,7 @@ df <- df %>% filter((str_detect(HP, "^0/0") & str_detect(LP, "^1/1")) | (str_det
   filter(!(str_detect(HB, "^\\./\\.") | str_detect(LB, "^\\./\\."))) %>%
   filter(ALT == "A" | ALT == "C" | ALT == "G" | ALT == "T")
 
-chromColor <- read_tsv("./chromColor.txt")
+chromColor <- read_tsv("./chrom.txt")
 dd <- df %>% filter(QUAL > minQ) #过滤QUAL小于等于50的行
 l1<-nchar(dd$REF)	#求REF字符串长度
 l2<-nchar(dd$ALT)	#求ALT字符串长度
